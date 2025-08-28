@@ -1,0 +1,3 @@
+# Place your Google Trends cookie here
+# Get it from Chrome DevTools -> Network -> trends.google.com request -> Cookie header
+# Example: NID=511=xyz...; CONSENT=YES+...; 1P_JAR=2024-01-15-12

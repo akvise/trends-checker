@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trends-checker"
+version = "0.1.0"
+description = "CLI to probe Google Trends interest (YouTube real-time translation hypothesis)"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Trends Checker Contributors" }]
+dependencies = [
+  "pytrends>=4.9",
+  "pandas>=2.0",
+  "tabulate>=0.9",
+]
+
+[project.scripts]
+trends-checker = "trends_checker.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = { find = { where = ["src"], include = ["trends_checker*"] } }
+
