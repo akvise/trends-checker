@@ -170,6 +170,9 @@ cookies.txt
 .claude/
 reports/
 
+# Local personal data files
+*.local.txt
+
 # OS generated files
 .DS_Store
 .DS_Store?
