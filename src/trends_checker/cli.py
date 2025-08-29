@@ -30,7 +30,7 @@ def _require_pytrends():
 def _parse_args(argv: List[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="trends-checker",
-        description="Probe Google Trends (YouTube Search) for interest in real-time YouTube translation/dubbing.",
+        description="Analyze Google Trends interest across different search categories (Web, YouTube, Images, News, Shopping).",
     )
     p.add_argument(
         "--keywords",
@@ -117,6 +117,12 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         help="Write summary CSV to this path (optional)",
     )
     p.add_argument(
+        "--group",
+        choices=["web", "youtube", "images", "news", "shopping"],
+        default="web",
+        help="Search category: web (default), youtube, images, news, shopping",
+    )
+    p.add_argument(
         "--related",
         action="store_true",
         help="Fetch and print rising related queries per keyword per region",
@@ -126,6 +132,30 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
 
 def _normalize_geo(code: str) -> str:
     return "" if code.upper() == "WW" else code.upper()
+
+
+def _map_group_to_gprop(group: str) -> str:
+    """Map user-friendly group names to pytrends gprop values."""
+    mapping = {
+        "web": "",           # Google Web Search (default)
+        "youtube": "youtube", # YouTube Search
+        "images": "images",  # Google Images Search
+        "news": "news",      # Google News Search  
+        "shopping": "froogle", # Google Shopping (pytrends uses 'froogle' internally)
+    }
+    return mapping.get(group, "")
+
+
+def _format_group_name(group: str) -> str:
+    """Format group name for display."""
+    names = {
+        "web": "Web",
+        "youtube": "YouTube", 
+        "images": "Images",
+        "news": "News",
+        "shopping": "Shopping",
+    }
+    return names.get(group, "Web")
 
 
 def _load_list_from_file(path: str) -> list[str]:
@@ -228,7 +258,7 @@ def main(argv: List[str] | None = None) -> int:
                         }
                     },
                 )
-                py.build_payload(kws, cat=0, timeframe=args.timeframe, geo=geo, gprop="youtube")
+                py.build_payload(kws, cat=0, timeframe=args.timeframe, geo=geo, gprop=_map_group_to_gprop(args.group))
                 iot_df = py.interest_over_time()
                 return py, iot_df
             except Exception as e:  # noqa: BLE001
@@ -295,7 +325,7 @@ def main(argv: List[str] | None = None) -> int:
     # Pretty print (wide or vertical)
     try:
         from tabulate import tabulate  # type: ignore
-        print("\n=== Mean interest over time (YouTube Search) ===")
+        print(f"\n=== Mean interest over time (Google {_format_group_name(args.group)} Search) ===")
         if getattr(args, "display", "wide") == "wide":
             print(tabulate(df, headers="keys", tablefmt="github", showindex=False))
         else:

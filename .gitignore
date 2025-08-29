@@ -162,9 +162,13 @@ cython_debug/
 .vscode/
 
 # Sensitive data files - uncomment to ignore your actual cookie
-#cookie.txt
+cookie.txt
 *.cookie
 cookies.txt
+
+# Claude Code and analysis files
+.claude/
+reports/
 
 # OS generated files
 .DS_Store

@@ -1,12 +1,12 @@
 # 🚀 Trends Checker
 
-**A powerful CLI tool to analyze Google Trends interest for YouTube search terms**
+**A powerful CLI tool to analyze Google Trends interest across different search categories**
 
-Built specifically for validating demand around real-time YouTube translation, multi-voice dubbing, and AI voiceover technologies. Uses the unofficial pytrends client for fast trend analysis.
+Analyze search trends across Web, YouTube, Images, News, and Shopping categories. Built for validating market demand, tracking trends, and discovering opportunities. Uses the unofficial pytrends client for fast trend analysis.
 
 ![Example Output](images/image.png)
 
-<sub><i>Generated with: `trends-checker --cookie-file cookie.txt --geo US --timeframe "today 12-m" --display "vertical"`<br/>
+<sub><i>Generated with: `trends-checker --cookie-file cookie.txt --timeframe "today 12-m"`<br/>
 (Create your own `cookie.txt` file following the instructions below)</i></sub>
 
 ---
@@ -59,6 +59,24 @@ trends-checker --timeframe "now 7-d"
 
 # Last 3 months for recent trends
 trends-checker --timeframe "today 3-m"
+```
+
+### 📂 Search Categories
+```bash
+# Web search trends (default)
+trends-checker --group web --keywords "artificial intelligence,machine learning"
+
+# YouTube search trends
+trends-checker --group youtube --keywords "AI voice cloning,real time dubbing"
+
+# Image search trends
+trends-checker --group images --keywords "AI generated art,deepfake"
+
+# News search trends  
+trends-checker --group news --keywords "cryptocurrency,blockchain"
+
+# Shopping trends
+trends-checker --group shopping --keywords "smart home,fitness tracker"
 ```
 
 ### 🔍 Custom Keywords
@@ -175,6 +193,7 @@ trends-checker \
 |-----------|-------------|---------|
 | `--keywords` | Comma-separated terms (max 5) | English translation/dubbing terms |
 | `--keywords-file` | File with keywords (one per line) | - |
+| `--group` | Search category: `web`, `youtube`, `images`, `news`, `shopping` | web |
 | `--geo` | Comma-separated regions (ISO codes or WW) | WW,US,BR,ES,IN,ID,RU |
 | `--timeframe` | Time period (e.g., "today 12-m", "today 5-y") | "today 12-m" |
 | `--display` | Layout: `vertical` \| `wide` | vertical |
@@ -207,8 +226,8 @@ make help        # Show all available targets
 ## 📋 How It Works
 
 ### What Gets Analyzed:
-- **YouTube Search only** (`gprop=youtube`) - not web search
-- **Up to 5 keywords** per request (Google's limit)
+- **Search categories**: Web (default), YouTube, Images, News, Shopping
+- **Up to 5 keywords** per request (Google's limit)  
 - **Mean interest** per keyword per region over timeframe
 - **Related rising queries** (optional, slower)
 
@@ -329,7 +348,7 @@ These terms are specifically chosen to validate demand for real-time YouTube tra
 1. **Unofficial API** - Google has no public Trends API; pytrends can break
 2. **Rate Limiting** - Google aggressively throttles automated requests
 3. **Relative Data** - All scores are relative, not absolute search volumes
-4. **YouTube Only** - This tool specifically analyzes YouTube search trends
+4. **Category-Specific** - Each search category has different user behaviors and data patterns
 5. **Regional Variations** - Some terms may not translate well across regions
 
 ---
