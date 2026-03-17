@@ -1,395 +1,170 @@
 # 🚀 Trends Checker
 
-**A powerful CLI tool to analyze Google Trends interest across different search categories**
+<p align="center">
+  <a href="https://github.com/akvise/trends-checker/stargazers"><img src="https://img.shields.io/github/stars/akvise/trends-checker?style=flat-square&color=yellow" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square" alt="Python">
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/backend-Google%20Trends%20%7C%20DataForSEO-purple?style=flat-square" alt="Backend">
+</p>
 
-Analyze search trends across Web, YouTube, Images, News, and Shopping categories. Built for validating market demand, tracking trends, and discovering opportunities. Uses the unofficial pytrends client for fast trend analysis.
+**Python CLI for Google Trends analysis** — with enterprise rate limiting, cookie auth, and DataForSEO backend support.
+
+Analyze search trends across Web, YouTube, Images, News, and Shopping. Built for validating market demand, tracking keyword opportunities, and discovering trends before they peak.
 
 ![Example Output](images/image.png)
 
-<sub><i>Generated with: `trends-checker --cookie-file cookie.txt --timeframe "today 12-m"`<br/>
-(Create your own `cookie.txt` file following the instructions below)</i></sub>
+<sub><i>Generated with: <code>trends-checker --keywords "AI agents,vibe coding,cursor ide" --geo US,WW</code></i></sub>
 
 ---
 
 ## ⚡ Quick Start
 
-### Requirements
-- **Python 3.11+**
-
-### Recommended Installation
 ```bash
-make install
-```
+pip install trends-checker
 
-### Manual Installation
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -e .
-```
+# Basic usage
+trends-checker --keywords "AI agents,vibe coding" --geo US
 
-### First Run
-```bash
-trends-checker
-```
-*Analyzes default translation/dubbing terms worldwide over the last 12 months*
-
-
----
-
-## 🎯 Core Features
-
-### 🌍 Multi-Region Analysis
-```bash
-# Global + key markets
-trends-checker --geo WW,US,BR,ES,IN,ID,RU
-
-# English-speaking countries only
-trends-checker --geo US,GB,AU,CA
-```
-
-### ⏰ Flexible Timeframes
-```bash
-# Last 5 years for long-term trends
-trends-checker --timeframe "today 5-y"
-
-# Last week for quick pulse check
-trends-checker --timeframe "now 7-d"
-
-# Last 3 months for recent trends
-trends-checker --timeframe "today 3-m"
-```
-
-### 📂 Search Categories
-```bash
-# Web search trends (default)
-trends-checker --group web --keywords "artificial intelligence,machine learning"
-
-# YouTube search trends
-trends-checker --group youtube --keywords "AI voice cloning,real time dubbing"
-
-# Image search trends
-trends-checker --group images --keywords "AI generated art,deepfake"
-
-# News search trends  
-trends-checker --group news --keywords "cryptocurrency,blockchain"
-
-# Shopping trends
-trends-checker --group shopping --keywords "smart home,fitness tracker"
-```
-
-### 🔍 Custom Keywords
-```bash
-# Your own terms (max 5 per request)
-trends-checker --keywords "AI voice cloning,real time dubbing,YouTube translation"
-
-# Load from file (one per line, # for comments)
-trends-checker --keywords-file keywords.txt
-```
-
-### 📊 Display Options
-```bash
-# Vertical layout with ASCII progress bars
-trends-checker --display vertical --geo WW,US
-
-# Wide table format
-trends-checker --display wide
-```
-
-### 💾 Data Export
-```bash
-# Save results to CSV
-trends-checker --output trends_analysis.csv
-
-# Include related rising queries
-trends-checker --related --output comprehensive_report.csv
+# No 429s — use DataForSEO backend
+trends-checker --keywords "AI agents,vibe coding" --dataforseo-key user@email.com:password
 ```
 
 ---
 
-## 🍪 Handling 429 (Too Many Requests)
+## 🔥 Why trends-checker?
 
-Google Trends aggressively rate-limits requests. **When you get 429 errors:**
+Google Trends API is unofficial and aggressively rate-limited. One script hitting 10+ regions = 429 errors immediately.
 
-### Quick Solutions:
-- Reduce regions per run and add delays
-- Use browser cookies to warm up the session
-- Space out your requests over time
+trends-checker solves this:
+- **Cookie auth** — warm up session with your browser cookies
+- **Exponential backoff** — smart retry logic, configurable sleep/jitter
+- **DataForSEO backend** — paid alternative, zero rate limits, real search volumes
+- **Multi-region** — analyze 50+ countries in one run
+- **CSV export** — build historical datasets, track changes over time
 
-### Getting Browser Cookies:
+---
 
-**Chrome/Edge Steps:**
-1. **Open** https://trends.google.com/trends/?geo=US
-2. **DevTools** → **Network** → reload the page  
-3. **Find request** like `explore?geo=US` (any Trends API call)
-4. **Request Headers** → copy the full `Cookie` value
-5. **Save to** `cookie.txt` (single line)
+## 📂 Search Categories
 
-### Using Cookies:
 ```bash
-# From file (recommended)
+trends-checker --group web --keywords "AI agents,automation tools"     # Web (default)
+trends-checker --group youtube --keywords "cursor ide tutorial"         # YouTube
+trends-checker --group images --keywords "AI generated art"             # Images
+trends-checker --group news --keywords "artificial intelligence"         # News
+trends-checker --group shopping --keywords "mechanical keyboard"         # Shopping
+```
+
+---
+
+## 🚫 Handling 429 Errors
+
+Google Trends rate-limits automated requests. Two solutions:
+
+### Option 1: Browser Cookies (free)
+
+```bash
+# Get your cookie from Chrome DevTools → Network → trends.google.com
 trends-checker --cookie-file cookie.txt --geo US
 
-# Environment variable
-TRENDS_COOKIE="NID=...; other=..." trends-checker --geo US
-
-# Inline (not recommended - stays in shell history)
-trends-checker --cookie "NID=...; other=..." --geo US
+# Or via environment variable
+TRENDS_COOKIE="NID=...;" trends-checker --geo US
 ```
 
-> ⚠️ **Security Note:** Browser cookies are sensitive. Don't commit them, avoid shell history, rotate after use.
+### Option 2: DataForSEO API (recommended for automation)
+
+```bash
+# Sign up at https://app.dataforseo.com (pay-per-use, ~$0.075/request)
+trends-checker --keywords "vibe coding,cursor ide" --dataforseo-key login@email.com:password
+
+# Or via environment variable
+DATAFORSEO_KEY="login@email.com:password" trends-checker --keywords "AI agents"
+```
+
+DataForSEO gives you real search volumes with no rate limits — ideal for automated pipelines, cron jobs, and AI agent workflows.
 
 ---
 
-## 📈 Usage Examples
-
-### Basic Demand Analysis
-```bash
-# Global + US markets, vertical view, past year
-trends-checker --display vertical --geo WW,US --timeframe "today 12-m"
-```
-
-### Comprehensive Market Research
-```bash
-# Custom terms + CSV export + related queries
-trends-checker \
-  --keywords-file my_research_terms.txt \
-  --geo US,ES,BR,DE,FR \
-  --related \
-  --output market_analysis.csv
-```
-
-### Quick Trend Check
-```bash
-# Minimal run for trend signal
-trends-checker --geo US --timeframe "now 7-d"
-```
-
-### Niche Analysis
-```bash
-# AI dubbing in English-speaking markets
-trends-checker \
-  --keywords "AI voice cloning,deepfake voice,synthetic speech,voice synthesis" \
-  --geo US,GB,AU,CA \
-  --timeframe "today 2-y" \
-  --display vertical
-```
-
-### International Market Comparison
-```bash
-# Compare translation demand across major markets
-trends-checker \
-  --keywords "real time translation,live translation,auto translate" \
-  --geo WW,US,CN,JP,DE,BR \
-  --output international_comparison.csv
-```
-
----
-
-## 🎛️ Complete Parameter Reference
+## 🎛️ Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `--keywords` | Comma-separated terms (max 5) | English translation/dubbing terms |
+| `--keywords` | Comma-separated terms (max 5) | AI agents, vibe coding, ... |
 | `--keywords-file` | File with keywords (one per line) | - |
-| `--group` | Search category: `web`, `youtube`, `images`, `news`, `shopping` | web |
-| `--geo` | Comma-separated regions (ISO codes or WW) | WW,US,BR,ES,IN,ID,RU |
-| `--timeframe` | Time period (e.g., "today 12-m", "today 5-y") | "today 12-m" |
-| `--display` | Layout: `vertical` \| `wide` | vertical |
+| `--group` | `web`, `youtube`, `images`, `news`, `shopping` | web |
+| `--geo` | ISO country codes or WW | WW,US,BR,ES,IN,ID,RU |
+| `--timeframe` | Time period (`"today 12-m"`, `"today 5-y"`) | `today 12-m` |
+| `--display` | `vertical` or `wide` | vertical |
 | `--output` | CSV export path | - |
 | `--related` | Show rising related queries | false |
 | `--sleep` | Seconds between geo requests | 1.2 |
-| `--retries` | Retry attempts on errors | 3 |
+| `--retries` | Retry attempts on 429 errors | 3 |
 | `--backoff` | Exponential backoff base (seconds) | 1.5 |
 | `--jitter` | Random jitter added to delays | 0.6 |
-| `--cookie-file` | File containing browser cookie | - |
+| `--cookie-file` | Browser cookie file | - |
 | `--cookie` | Raw cookie header value | - |
 | `--proxy` | HTTP/HTTPS proxy URLs (comma-separated) | - |
-| `--hl` | UI language (e.g., en-US, es-ES) | en-US |
+| `--dataforseo-key` | DataForSEO credentials (`user:pass`) | `$DATAFORSEO_KEY` |
+| `--hl` | UI language (e.g., `en-US`) | en-US |
 
 ---
 
-## 🛠️ Make Commands
+## 🚀 Want real-time keyword velocity?
+
+**trends-checker** tells you *where* a keyword is now.
+
+**[TrendProof](https://trendproof.dev)** tells you *how fast it's growing* — and when to publish.
 
 ```bash
-make install     # Create venv and install dependencies
-make run         # Run with default parameters
-make run-related # Run with related queries enabled
-make clean       # Remove caches and build artifacts
-make reset       # Remove venv and clean everything
-make help        # Show all available targets
+# TrendProof API (for AI agents and automation)
+curl -X POST https://trendproof.dev/api/analyze \
+  -H "Authorization: Bearer TRND_your_key" \
+  -d '{"keyword": "vibe coding"}'
+
+# Returns: velocity +87%, direction: rising, action_hint: "publish now before peak"
 ```
 
----
-
-## 📋 How It Works
-
-### What Gets Analyzed:
-- **Search categories**: Web (default), YouTube, Images, News, Shopping
-- **Up to 5 keywords** per request (Google's limit)  
-- **Mean interest** per keyword per region over timeframe
-- **Related rising queries** (optional, slower)
-
-### Output Formats:
-- **Vertical** - Per-region blocks with ASCII progress bars and sorted results (default)
-- **Wide** - Compact table with all regions as columns
-
-### Data Points:
-- Interest scores are **relative** (0-100 scale)
-- Values represent **average interest** over the time period
-- **100 = peak popularity** for that term in that region/timeframe
+→ **[Get your API key at trendproof.dev](https://trendproof.dev)**  
+→ Or install the OpenClaw skill: `/skill install trendproof`
 
 ---
 
-## 🚨 Troubleshooting
+## 📈 Examples
 
-### Common Issues:
-
-**❌ 429 Too Many Requests**
 ```bash
-# Reduce load
-trends-checker --geo US --sleep 2.0 --retries 1
+# Market validation — last 12 months
+trends-checker --keywords "AI agents,automation tools,no-code" --geo US,WW
 
-# Use authenticated session
-trends-checker --cookie-file cookie.txt --geo US,CA
+# Quick pulse check
+trends-checker --keywords "cursor ide,windsurf ide" --geo US --timeframe "now 7-d"
+
+# Export for analysis
+trends-checker --keywords "AI assistant" --geo US,GB,DE,FR --output research.csv --related
+
+# Multi-region with DataForSEO (no 429s)
+trends-checker --keywords "vibe coding,AI agents" --geo US,IN,BR --dataforseo-key user:pass
 ```
 
-**❌ No Data Returned**
+---
+
+## 🛠️ Installation
+
 ```bash
-# Check region codes (use ISO country codes)
-trends-checker --geo US  # ✅ correct
-trends-checker --geo USA # ❌ incorrect
-
-# Try different timeframe
-trends-checker --timeframe "today 3-m"  # instead of longer periods
-```
-
-**❌ Slow Performance**
-```bash
-# Skip related queries (they're slow)
-trends-checker  # without --related flag
-
-# Fewer regions per run
-trends-checker --geo US,CA  # instead of many regions
-```
-
-**❌ Keywords Not Found**
-```bash
-# Check spelling and try broader terms
-trends-checker --keywords "YouTube translation"  # broader
-# instead of very specific terms
-
-# Try different timeframes
-trends-checker --timeframe "today 5-y"  # longer history
+# From source
+git clone https://github.com/akvise/trends-checker
+cd trends-checker
+make install
 ```
 
 ---
 
-## 💡 Pro Tips
+## ⭐ Contributing
 
-### For Heavy Usage:
-1. **Batch smartly** - Run fewer regions per call, more calls total
-2. **Use delays** - Increase `--sleep` and use `--jitter` for randomization  
-3. **Rotate cookies** - Fresh browser sessions help avoid limits
-4. **Monitor 429s** - Back off immediately when you hit rate limits
+If trends-checker saved you from 429 hell — star the repo! ⭐
 
-### For Research:
-1. **Start narrow** - Use `--timeframe "now 7-d"` first, then expand
-2. **Compare timeframes** - Run same keywords with different periods
-3. **Save everything** - Always use `--output` to build historical datasets
-4. **Check related** - Use `--related` to discover new keyword opportunities
-
-### For Monitoring:
-1. **Automate runs** - Set up cron jobs with different regions/timeframes
-2. **Track changes** - Compare CSV exports over time to spot trends
-3. **Alert on spikes** - Build monitoring around sudden interest increases
-4. **Regional insights** - Use vertical display to spot geographic patterns
-
-### Keyword Strategy:
-- **Mix broad/specific** terms to get complete picture
-- **Include variations** - "AI dubbing" vs "artificial intelligence dubbing"  
-- **Test seasonality** - Compare current period to same period last year
-- **Language variants** - Test English terms in non-English markets
+- Open issues for bugs or feature requests
+- PRs welcome for new backends, display formats, or output options
+- Share what you're tracking — market research, SEO, AI tool trends?
 
 ---
 
-## 🔍 Default Keywords
-
-The tool comes with curated default keywords focused on YouTube translation/dubbing:
-
-- `real time translation YouTube`
-- `live translation YouTube`  
-- `AI dubbing YouTube`
-- `YouTube voiceover`
-- `automatic translation YouTube`
-
-These terms are specifically chosen to validate demand for real-time YouTube translation technologies and AI-powered dubbing solutions.
-
----
-
-## 📊 Understanding the Output
-
-### Interest Scores:
-- **0-100 scale** where 100 = peak popularity
-- **Relative to timeframe and region** - not absolute numbers
-- **Weekly/monthly averages** depending on timeframe selected
-
-### Interpreting Results:
-- **50+ = Strong interest** in that region/timeframe
-- **20-50 = Moderate interest** worth investigating
-- **<20 = Low interest** may indicate niche market
-- **0 = Insufficient data** (very rare terms or regions)
-
----
-
-## ⚠️ Important Limitations
-
-1. **Unofficial API** - Google has no public Trends API; pytrends can break
-2. **Rate Limiting** - Google aggressively throttles automated requests
-3. **Relative Data** - All scores are relative, not absolute search volumes
-4. **Category-Specific** - Each search category has different user behaviors and data patterns
-5. **Regional Variations** - Some terms may not translate well across regions
-
----
-
-## 📄 Sample Keywords File
-
-Create `keywords.txt` with your research terms:
-
-```
-# YouTube Translation Research Terms
-real time translation YouTube
-live translation YouTube  
-AI dubbing YouTube
-YouTube voiceover
-automatic translation YouTube
-
-# Voice Technology Terms  
-AI voice cloning
-synthetic speech
-voice synthesis
-deepfake voice
-
-# Market Segments
-multilingual content
-international YouTube
-global content creation
-```
-
----
-
-## ⭐ Contributing & Feedback
-
-If this tool has helped with your YouTube trends research or market analysis:
-
-1. **Star the repository** ⭐
-2. **Share your use cases** - what markets are you researching?
-3. **Report issues** - help improve the tool for everyone
-4. **Suggest features** - what other trend analysis would be helpful?
-
----
-
-**Happy trend hunting! ✨**
-
-*Built for creators, researchers, and entrepreneurs validating the future of multilingual YouTube content.*
+*Built for researchers, founders, and AI agent developers who need trend data without the pain.*
