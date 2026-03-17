@@ -1,113 +1,216 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="700" height="460" viewBox="0 0 700 460">
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="430" viewBox="0 0 700 430">
   <defs>
     <style>
-      .bg { fill: #1e1e2e; }
+      text { font-family: 'Courier New', Courier, monospace; font-size: 13px; }
+      .bg       { fill: #1e1e2e; }
       .titlebar { fill: #313244; }
-      .dot-red { fill: #f38ba8; }
-      .dot-yellow { fill: #f9e2af; }
-      .dot-green { fill: #a6e3a1; }
+      .prompt   { fill: #50fa7b; }
+      .cmd      { fill: #cdd6f4; }
+      .str      { fill: #f1fa8c; }
+      .dim      { fill: #6c7086; }
+      .header   { fill: #f1fa8c; }
+      .border   { fill: #585b70; }
+      .data     { fill: #cdd6f4; }
+      .rising   { fill: #a6e3a1; }
+      .stable   { fill: #f9e2af; }
+      .sh       { fill: #a6e3a1; }
+      .sm       { fill: #f9e2af; }
+      .sl       { fill: #45475a; }
 
-      .line1  { animation: fadein 0.3s ease forwards; animation-delay: 0.2s; opacity: 0; }
-      .line2  { animation: fadein 0.3s ease forwards; animation-delay: 0.7s; opacity: 0; }
-      .line3  { animation: fadein 0.3s ease forwards; animation-delay: 1.0s; opacity: 0; }
-      .line4  { animation: fadein 0.3s ease forwards; animation-delay: 1.3s; opacity: 0; }
-      .line5  { animation: fadein 0.3s ease forwards; animation-delay: 1.6s; opacity: 0; }
-      .line6  { animation: fadein 0.3s ease forwards; animation-delay: 1.9s; opacity: 0; }
-      .line7  { animation: fadein 0.3s ease forwards; animation-delay: 2.2s; opacity: 0; }
-      .line8  { animation: fadein 0.3s ease forwards; animation-delay: 2.5s; opacity: 0; }
-      .line9  { animation: fadein 0.3s ease forwards; animation-delay: 2.8s; opacity: 0; }
-      .line10 { animation: fadein 0.3s ease forwards; animation-delay: 3.1s; opacity: 0; }
-      .line11 { animation: fadein 0.3s ease forwards; animation-delay: 3.4s; opacity: 0; }
-      .line12 { animation: fadein 0.3s ease forwards; animation-delay: 3.7s; opacity: 0; }
-      .line13 { animation: fadein 0.3s ease forwards; animation-delay: 4.0s; opacity: 0; }
-      .line14 { animation: fadein 0.3s ease forwards; animation-delay: 4.3s; opacity: 0; }
-      .line15 { animation: fadein 0.3s ease forwards; animation-delay: 4.6s; opacity: 0; }
-      .cursor { animation: blink 1s step-end infinite; }
+      .L1  { animation: fi .3s ease forwards; animation-delay: 0.2s; opacity:0; }
+      .L2  { animation: fi .3s ease forwards; animation-delay: 0.7s; opacity:0; }
+      .L3  { animation: fi .3s ease forwards; animation-delay: 1.0s; opacity:0; }
+      .L4  { animation: fi .3s ease forwards; animation-delay: 1.3s; opacity:0; }
+      .L5  { animation: fi .3s ease forwards; animation-delay: 1.6s; opacity:0; }
+      .L6  { animation: fi .3s ease forwards; animation-delay: 1.9s; opacity:0; }
+      .L7  { animation: fi .3s ease forwards; animation-delay: 2.2s; opacity:0; }
+      .L8  { animation: fi .3s ease forwards; animation-delay: 2.5s; opacity:0; }
+      .L9  { animation: fi .3s ease forwards; animation-delay: 2.8s; opacity:0; }
+      .L10 { animation: fi .3s ease forwards; animation-delay: 3.1s; opacity:0; }
+      .L11 { animation: fi .3s ease forwards; animation-delay: 3.4s; opacity:0; }
+      .L12 { animation: fi .3s ease forwards; animation-delay: 3.7s; opacity:0; }
+      .L13 { animation: fi .3s ease forwards; animation-delay: 4.0s; opacity:0; }
+      .L14 { animation: fi .3s ease forwards; animation-delay: 4.3s; opacity:0; }
+      .L15 { animation: fi .3s ease forwards; animation-delay: 4.6s; opacity:0; }
+      .cur { animation: blink 1s step-end infinite; }
 
-      @keyframes fadein {
-        from { opacity: 0; transform: translateY(3px); }
-        to   { opacity: 1; transform: translateY(0); }
+      @keyframes fi {
+        from { opacity:0; transform:translateY(3px); }
+        to   { opacity:1; transform:translateY(0); }
       }
       @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: 0; }
+        0%,100% { opacity:1; } 50% { opacity:0; }
       }
-
-      pre {
-        font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
-        font-size: 13px;
-        line-height: 1.5;
-        margin: 0;
-        padding: 0;
-        white-space: pre;
-      }
-      .c-prompt  { color: #50fa7b; }
-      .c-cmd     { color: #cdd6f4; }
-      .c-str     { color: #f1fa8c; }
-      .c-dim     { color: #6c7086; }
-      .c-header  { color: #f1fa8c; }
-      .c-border  { color: #585b70; }
-      .c-data    { color: #cdd6f4; }
-      .c-rising  { color: #a6e3a1; }
-      .c-stable  { color: #f9e2af; }
-      .c-spark-h { color: #a6e3a1; }
-      .c-spark-m { color: #f9e2af; }
-      .c-spark-l { color: #45475a; }
     </style>
   </defs>
 
-  <!-- Window background -->
-  <rect width="700" height="460" rx="10" ry="10" class="bg"/>
-
-  <!-- Title bar -->
-  <rect width="700" height="36" rx="10" ry="10" class="titlebar"/>
+  <!-- Background -->
+  <rect width="700" height="430" rx="10" class="bg"/>
+  <!-- Titlebar -->
+  <rect width="700" height="36" rx="10" class="titlebar"/>
   <rect y="18" width="700" height="18" class="titlebar"/>
-  <circle cx="20" cy="18" r="6" class="dot-red"/>
-  <circle cx="40" cy="18" r="6" class="dot-yellow"/>
-  <circle cx="60" cy="18" r="6" class="dot-green"/>
-  <text x="350" y="23" text-anchor="middle"
-        font-family="'Cascadia Code','Fira Code','Courier New',monospace"
-        font-size="12" fill="#6c7086">trends-checker — bash</text>
+  <circle cx="20" cy="18" r="6" fill="#f38ba8"/>
+  <circle cx="40" cy="18" r="6" fill="#f9e2af"/>
+  <circle cx="60" cy="18" r="6" fill="#a6e3a1"/>
+  <text x="350" y="23" text-anchor="middle" class="dim" font-size="12">trends-checker — bash</text>
 
-  <!-- Terminal content via foreignObject for pixel-perfect monospace -->
-  <foreignObject x="16" y="44" width="668" height="400">
-    <xhtml:div xmlns="http://www.w3.org/1999/xhtml">
+  <!--
+    Monospace char width at 13px ≈ 7.8px
+    x=16 is left margin
+    Line height = 19px, first line y=62
+  -->
 
-      <pre class="line1"><span class="c-prompt">❯ </span><span class="c-cmd">trends-checker --keywords </span><span class="c-str">"AI agents,vibe coding,cursor ide"</span><span class="c-cmd"> --geo US</span></pre>
+  <!-- L1: prompt + command (split into safe segments, no touching spans) -->
+  <g class="L1">
+    <text x="16"   y="62" class="prompt">&#x276F; </text>
+    <text x="31"   y="62" class="cmd">trends-checker --keywords </text>
+    <text x="226"  y="62" class="str">"AI agents,vibe coding,cursor ide"</text>
+    <text x="491"  y="62" class="cmd"> --geo US</text>
+  </g>
 
-      <pre class="line2"><span class="c-dim">Fetching trends via DataForSEO… (3 keywords × 1 region)</span></pre>
+  <!-- L2: status -->
+  <g class="L2">
+    <text x="16" y="81" class="dim">Fetching trends via DataForSEO... (3 keywords x 1 region)</text>
+  </g>
 
-      <pre class="line3"><span class="c-border">┌──────────────────────┬────────┬──────────┬────────────┬──────────┐</span></pre>
+  <!-- Table lines — each rendered as a single text node to keep alignment -->
+  <g class="L3">
+    <text x="16" y="106" class="border">+----------------------+--------+----------+------------+----------+</text>
+  </g>
+  <g class="L4">
+    <text x="16" y="125" class="border">|</text>
+    <text x="24" y="125" class="header"> Keyword              </text>
+    <text x="196" y="125" class="border">|</text>
+    <text x="204" y="125" class="header"> Region </text>
+    <text x="266" y="125" class="border">|</text>
+    <text x="274" y="125" class="header"> Interest </text>
+    <text x="344" y="125" class="border">|</text>
+    <text x="352" y="125" class="header"> Sparkline  </text>
+    <text x="438" y="125" class="border">|</text>
+    <text x="446" y="125" class="header"> Trend    </text>
+    <text x="516" y="125" class="border">|</text>
+  </g>
+  <g class="L5">
+    <text x="16" y="144" class="border">+----------------------+--------+----------+------------+----------+</text>
+  </g>
 
-      <pre class="line4"><span class="c-border">│</span><span class="c-header"> Keyword              </span><span class="c-border">│</span><span class="c-header"> Region </span><span class="c-border">│</span><span class="c-header"> Interest </span><span class="c-border">│</span><span class="c-header"> Sparkline  </span><span class="c-border">│</span><span class="c-header"> Trend    </span><span class="c-border">│</span></pre>
+  <!-- Row 1: AI agents US -->
+  <g class="L6">
+    <text x="16"  y="163" class="border">|</text>
+    <text x="24"  y="163" class="data"> AI agents            </text>
+    <text x="196" y="163" class="border">|</text>
+    <text x="204" y="163" class="data"> US     </text>
+    <text x="266" y="163" class="border">|</text>
+    <text x="274" y="163" class="data">       87 </text>
+    <text x="344" y="163" class="border">|</text>
+    <text x="352" y="163" class="sl"> ##</text><text x="375" y="163" class="sm">##</text><text x="391" y="163" class="sh">####</text>
+    <text x="422" y="163" class="data"> </text>
+    <text x="438" y="163" class="border">|</text>
+    <text x="446" y="163" class="rising"> rising   </text>
+    <text x="516" y="163" class="border">|</text>
+  </g>
 
-      <pre class="line5"><span class="c-border">├──────────────────────┼────────┼──────────┼────────────┼──────────┤</span></pre>
+  <!-- Row 2: vibe coding US -->
+  <g class="L7">
+    <text x="16"  y="182" class="border">|</text>
+    <text x="24"  y="182" class="data"> vibe coding          </text>
+    <text x="196" y="182" class="border">|</text>
+    <text x="204" y="182" class="data"> US     </text>
+    <text x="266" y="182" class="border">|</text>
+    <text x="274" y="182" class="data">       74 </text>
+    <text x="344" y="182" class="border">|</text>
+    <text x="352" y="182" class="sl"> #</text><text x="360" y="182" class="sm">###</text><text x="384" y="182" class="sh">###</text><text x="407" y="182" class="sm">#</text>
+    <text x="422" y="182" class="data"> </text>
+    <text x="438" y="182" class="border">|</text>
+    <text x="446" y="182" class="rising"> rising   </text>
+    <text x="516" y="182" class="border">|</text>
+  </g>
 
-      <pre class="line6"><span class="c-border">│</span><span class="c-data"> AI agents            </span><span class="c-border">│</span><span class="c-data"> US     </span><span class="c-border">│</span><span class="c-data">       87 </span><span class="c-border">│</span><span class="c-data"> </span><span class="c-spark-l">░░</span><span class="c-spark-m">▓▓</span><span class="c-spark-h">████</span><span class="c-data"> </span><span class="c-border">│</span><span class="c-rising"> ↑ rising </span><span class="c-border">│</span></pre>
+  <!-- Row 3: cursor ide US -->
+  <g class="L8">
+    <text x="16"  y="201" class="border">|</text>
+    <text x="24"  y="201" class="data"> cursor ide           </text>
+    <text x="196" y="201" class="border">|</text>
+    <text x="204" y="201" class="data"> US     </text>
+    <text x="266" y="201" class="border">|</text>
+    <text x="274" y="201" class="data">       61 </text>
+    <text x="344" y="201" class="border">|</text>
+    <text x="352" y="201" class="sl"> ##</text><text x="375" y="201" class="sm">###</text><text x="399" y="201" class="sh">##</text><text x="415" y="201" class="sm">#</text>
+    <text x="422" y="201" class="data"> </text>
+    <text x="438" y="201" class="border">|</text>
+    <text x="446" y="201" class="rising"> rising   </text>
+    <text x="516" y="201" class="border">|</text>
+  </g>
 
-      <pre class="line7"><span class="c-border">│</span><span class="c-data"> vibe coding          </span><span class="c-border">│</span><span class="c-data"> US     </span><span class="c-border">│</span><span class="c-data">       74 </span><span class="c-border">│</span><span class="c-data"> </span><span class="c-spark-l">░</span><span class="c-spark-m">▓▓▓</span><span class="c-spark-h">███</span><span class="c-spark-m">▓</span><span class="c-data"> </span><span class="c-border">│</span><span class="c-rising"> ↑ rising </span><span class="c-border">│</span></pre>
+  <g class="L9">
+    <text x="16" y="220" class="border">+----------------------+--------+----------+------------+----------+</text>
+  </g>
 
-      <pre class="line8"><span class="c-border">│</span><span class="c-data"> cursor ide           </span><span class="c-border">│</span><span class="c-data"> US     </span><span class="c-border">│</span><span class="c-data">       61 </span><span class="c-border">│</span><span class="c-data"> </span><span class="c-spark-l">░░</span><span class="c-spark-m">▓▓▓</span><span class="c-spark-h">██</span><span class="c-spark-m">▓</span><span class="c-data"> </span><span class="c-border">│</span><span class="c-rising"> ↑ rising </span><span class="c-border">│</span></pre>
+  <!-- Row 4: AI agents WW -->
+  <g class="L10">
+    <text x="16"  y="239" class="border">|</text>
+    <text x="24"  y="239" class="dim"> AI agents            </text>
+    <text x="196" y="239" class="border">|</text>
+    <text x="204" y="239" class="dim"> WW     </text>
+    <text x="266" y="239" class="border">|</text>
+    <text x="274" y="239" class="dim">       92 </text>
+    <text x="344" y="239" class="border">|</text>
+    <text x="352" y="239" class="sl"> #</text><text x="360" y="239" class="sm">#</text><text x="368" y="239" class="sh">######</text>
+    <text x="422" y="239" class="dim"> </text>
+    <text x="438" y="239" class="border">|</text>
+    <text x="446" y="239" class="rising"> rising   </text>
+    <text x="516" y="239" class="border">|</text>
+  </g>
 
-      <pre class="line9"><span class="c-border">├──────────────────────┼────────┼──────────┼────────────┼──────────┤</span></pre>
+  <!-- Row 5: vibe coding WW -->
+  <g class="L11">
+    <text x="16"  y="258" class="border">|</text>
+    <text x="24"  y="258" class="dim"> vibe coding          </text>
+    <text x="196" y="258" class="border">|</text>
+    <text x="204" y="258" class="dim"> WW     </text>
+    <text x="266" y="258" class="border">|</text>
+    <text x="274" y="258" class="dim">       68 </text>
+    <text x="344" y="258" class="border">|</text>
+    <text x="352" y="258" class="sl"> ##</text><text x="375" y="258" class="sm">###</text><text x="399" y="258" class="sh">###</text>
+    <text x="422" y="258" class="dim"> </text>
+    <text x="438" y="258" class="border">|</text>
+    <text x="446" y="258" class="rising"> rising   </text>
+    <text x="516" y="258" class="border">|</text>
+  </g>
 
-      <pre class="line10"><span class="c-border">│</span><span class="c-dim"> AI agents            </span><span class="c-border">│</span><span class="c-dim"> WW     </span><span class="c-border">│</span><span class="c-dim">       92 </span><span class="c-border">│</span><span class="c-dim"> </span><span class="c-spark-l">░</span><span class="c-spark-m">▓</span><span class="c-spark-h">██████</span><span class="c-dim"> </span><span class="c-border">│</span><span class="c-rising"> ↑ rising </span><span class="c-border">│</span></pre>
+  <!-- Row 6: cursor ide WW -->
+  <g class="L12">
+    <text x="16"  y="277" class="border">|</text>
+    <text x="24"  y="277" class="dim"> cursor ide           </text>
+    <text x="196" y="277" class="border">|</text>
+    <text x="204" y="277" class="dim"> WW     </text>
+    <text x="266" y="277" class="border">|</text>
+    <text x="274" y="277" class="dim">       55 </text>
+    <text x="344" y="277" class="border">|</text>
+    <text x="352" y="277" class="sl"> ###</text><text x="383" y="277" class="sm">###</text><text x="407" y="277" class="sh">##</text>
+    <text x="422" y="277" class="dim"> </text>
+    <text x="438" y="277" class="border">|</text>
+    <text x="446" y="277" class="stable"> stable   </text>
+    <text x="516" y="277" class="border">|</text>
+  </g>
 
-      <pre class="line11"><span class="c-border">│</span><span class="c-dim"> vibe coding          </span><span class="c-border">│</span><span class="c-dim"> WW     </span><span class="c-border">│</span><span class="c-dim">       68 </span><span class="c-border">│</span><span class="c-dim"> </span><span class="c-spark-l">░░</span><span class="c-spark-m">▓▓▓</span><span class="c-spark-h">███</span><span class="c-dim"> </span><span class="c-border">│</span><span class="c-rising"> ↑ rising </span><span class="c-border">│</span></pre>
+  <g class="L13">
+    <text x="16" y="296" class="border">+----------------------+--------+----------+------------+----------+</text>
+  </g>
 
-      <pre class="line12"><span class="c-border">│</span><span class="c-dim"> cursor ide           </span><span class="c-border">│</span><span class="c-dim"> WW     </span><span class="c-border">│</span><span class="c-dim">       55 </span><span class="c-border">│</span><span class="c-dim"> </span><span class="c-spark-l">░░░</span><span class="c-spark-m">▓▓▓</span><span class="c-spark-h">██</span><span class="c-dim"> </span><span class="c-border">│</span><span class="c-stable"> → stable </span><span class="c-border">│</span></pre>
+  <!-- Summary -->
+  <g class="L14">
+    <text x="16" y="321" class="dim">6 results  Google Trends (web)  timeframe: today 12-m  0.8s</text>
+  </g>
 
-      <pre class="line13"><span class="c-border">└──────────────────────┴────────┴──────────┴────────────┴──────────┘</span></pre>
-
-      <pre class="line14"><span class="c-dim">6 results · Google Trends (web) · timeframe: today 12-m · 0.8s</span></pre>
-
-      <pre class="line15"><span class="c-prompt">❯ </span><span class="c-prompt cursor">█</span></pre>
-
-    </xhtml:div>
-  </foreignObject>
+  <!-- Next prompt -->
+  <g class="L15">
+    <text x="16" y="350" class="prompt">&#x276F; </text>
+    <rect x="31" y="337" width="8" height="14" class="prompt cur"/>
+  </g>
 
   <!-- Footer -->
-  <text x="350" y="442" text-anchor="middle"
-        font-family="'Cascadia Code','Fira Code','Courier New',monospace"
-        font-size="11" fill="#45475a">No 429s · pip install trends-checker · trendproof.dev for velocity API</text>
+  <text x="350" y="415" text-anchor="middle" font-size="11" class="dim">
+    No 429s  ·  pip install trends-checker  ·  trendproof.dev for velocity API
+  </text>
 </svg>
