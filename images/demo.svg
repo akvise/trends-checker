@@ -64,8 +64,8 @@
   <g class="L1">
     <text x="16"   y="62" class="prompt">&#x276F; </text>
     <text x="31"   y="62" class="cmd">trends-checker --keywords </text>
-    <text x="226"  y="62" class="str">"AI agents,vibe coding,cursor ide"</text>
-    <text x="491"  y="62" class="cmd"> --geo US</text>
+    <text x="234"  y="62" class="str">"AI agents,vibe coding,cursor ide"</text>
+    <text x="502"  y="62" class="cmd"> --geo US</text>
   </g>
 
   <!-- L2: status -->
