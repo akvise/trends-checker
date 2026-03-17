@@ -5,13 +5,16 @@
   <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/backend-Google%20Trends%20%7C%20DataForSEO-purple?style=flat-square" alt="Backend">
+  <a href="https://github.com/akvise/trends-checker/actions/workflows/ci.yml"><img src="https://github.com/akvise/trends-checker/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 **Python CLI for Google Trends analysis** — with enterprise rate limiting, cookie auth, and DataForSEO backend support.
 
 Analyze search trends across Web, YouTube, Images, News, and Shopping. Built for validating market demand, tracking keyword opportunities, and discovering trends before they peak.
 
-![Example Output](images/image.png)
+<p align="center">
+  <img src="images/demo.svg" alt="trends-checker demo" width="700" />
+</p>
 
 <sub><i>Generated with: <code>trends-checker --keywords "AI agents,vibe coding,cursor ide" --geo US,WW</code></i></sub>
 
