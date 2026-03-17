@@ -8,11 +8,11 @@ import os
 
 
 DEFAULT_KEYWORDS = [
-    "real time translation YouTube",
-    "live translation YouTube", 
-    "AI dubbing YouTube",
-    "YouTube voiceover",
-    "automatic translation YouTube",
+    "AI agents",
+    "vibe coding",
+    "cursor ide",
+    "AI assistant",
+    "prompt engineering",
 ]
 
 DEFAULT_GEOS = ["WW", "US", "BR", "ES", "IN", "ID", "RU"]
@@ -127,6 +127,12 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         action="store_true",
         help="Fetch and print rising related queries per keyword per region",
     )
+    p.add_argument(
+        "--dataforseo-key",
+        type=str,
+        default=os.environ.get("DATAFORSEO_KEY", ""),
+        help="DataForSEO API credentials in format username:password. Enables rate-limit-free trend analysis. See https://app.dataforseo.com",
+    )
     return p.parse_args(argv)
 
 
@@ -171,6 +177,58 @@ def _load_list_from_file(path: str) -> list[str]:
     return items
 
 
+def run_dataforseo(keywords: List[str], args) -> None:
+    """Use DataForSEO API as backend — no rate limits, real search volumes."""
+    import urllib.request
+    import base64
+    import json
+
+    creds = args.dataforseo_key
+    if ":" not in creds:
+        print("Error: --dataforseo-key must be in username:password format", file=sys.stderr)
+        print("Sign up at https://app.dataforseo.com", file=sys.stderr)
+        return
+
+    username, password = creds.split(":", 1)
+    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+
+    payload = json.dumps([{
+        "keywords": keywords[:5],
+        "type": "web",
+        "language_code": "en",
+    }]).encode()
+
+    req = urllib.request.Request(
+        "https://api.dataforseo.com/v3/keywords_data/google_trends/explore/live",
+        data=payload,
+        headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+
+        if result.get("status_code") == 20000:
+            print(f"\n📊 DataForSEO Trends (no rate limits)\n{'─' * 55}")
+            tasks = result.get("tasks", [])
+            for task in tasks:
+                res = task.get("result") or []
+                items = res[0].get("items", []) if res else []
+                for item in items:
+                    kw = item.get("keyword", "")
+                    vals = item.get("data", {}).get("values", [])
+                    avg = sum(v.get("value", 0) for v in vals) / len(vals) if vals else 0
+                    bar = "█" * int(avg / 5) + "░" * (20 - int(avg / 5))
+                    print(f"  {kw:<32} [{bar}] {avg:.0f}/100")
+        else:
+            print(f"DataForSEO error {result.get('status_code')}: {result.get('status_message', 'Unknown')}", file=sys.stderr)
+
+    except Exception as e:  # noqa: BLE001
+        print(f"DataForSEO request failed: {e}", file=sys.stderr)
+        print("Falling back to Google Trends...", file=sys.stderr)
+
+
 def main(argv: List[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
 
@@ -206,6 +264,11 @@ def main(argv: List[str] | None = None) -> int:
             file=sys.stderr,
         )
         kws = kws[:5]
+
+    # DataForSEO backend — rate-limit-free alternative to Google Trends
+    if args.dataforseo_key:
+        run_dataforseo(kws, args)
+        return 0
 
     geos = [g.strip() for g in args.geo.split(",") if g.strip()]
     geos = geos or DEFAULT_GEOS
