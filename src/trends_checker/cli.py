@@ -117,6 +117,12 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         help="Write summary CSV to this path (optional)",
     )
     p.add_argument(
+        "--format",
+        choices=["table", "json", "csv"],
+        default="table",
+        help="Output format: table (default), json, or csv (printed to stdout)",
+    )
+    p.add_argument(
         "--group",
         choices=["web", "youtube", "images", "news", "shopping"],
         default="web",
@@ -385,6 +391,30 @@ def main(argv: List[str] | None = None) -> int:
         return 1
 
     df = pd.DataFrame(rows)
+
+    # --format json / csv — machine-readable output to stdout
+    fmt = getattr(args, "format", "table")
+    if fmt == "json":
+        import json as _json
+        output_data = []
+        for _, row in df.iterrows():
+            entry = {"geo": str(row.get("geo", ""))}
+            for k in kws:
+                entry[k] = round(float(row.get(k, 0.0)), 2)
+            output_data.append(entry)
+        print(_json.dumps(output_data, indent=2, ensure_ascii=False))
+        if args.output:
+            with open(args.output, "w", encoding="utf-8") as fh:
+                _json.dump(output_data, fh, indent=2, ensure_ascii=False)
+            print(f"\nSaved JSON: {args.output}", file=sys.stderr)
+        return 0
+    elif fmt == "csv":
+        print(df.to_csv(index=False), end="")
+        if args.output:
+            df.to_csv(args.output, index=False)
+            print(f"\nSaved CSV: {args.output}", file=sys.stderr)
+        return 0
+
     # Pretty print (wide or vertical)
     try:
         from tabulate import tabulate  # type: ignore
