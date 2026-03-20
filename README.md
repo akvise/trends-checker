@@ -47,6 +47,26 @@ trends-checker solves this:
 
 ---
 
+## 🔍 How it works
+
+trends-checker queries the **unofficial Google Trends API** via [pytrends](https://github.com/GeneralMills/pytrends) with several reliability layers on top:
+
+1. **Request** — sends keyword batch to Google Trends (`/explore`, `/multiline`)
+2. **Cookie auth** — optionally injects browser cookies to avoid cold-start 429s
+3. **Rate limiting** — configurable sleep + jitter between geo requests
+4. **Retry logic** — exponential backoff on 429/503 with configurable max retries
+5. **DataForSEO fallback** — swap backend entirely for zero rate limits and real search volumes
+
+```
+keywords → [cookie auth] → Google Trends API → [retry/backoff] → normalized interest (0-100)
+                                                     ↕ on 429
+                                            [DataForSEO backend]
+```
+
+Result is normalized interest score (0–100) per keyword per region, rendered as ASCII chart or exported to CSV.
+
+---
+
 ## 📂 Search Categories
 
 ```bash
