@@ -128,6 +128,10 @@ DataForSEO gives you real search volumes with no rate limits — ideal for autom
 | `--proxy` | HTTP/HTTPS proxy URLs (comma-separated) | - |
 | `--dataforseo-key` | DataForSEO credentials (`user:pass`) | `$DATAFORSEO_KEY` |
 | `--hl` | UI language (e.g., `en-US`) | en-US |
+| `--watch` | Enable watch mode (continuous polling + alerts) | false |
+| `--interval` | Polling interval in watch mode (e.g. `6h`, `30m`, `1d`) | `6h` |
+| `--threshold` | Percentage change to trigger an alert | `20` |
+| `--watch-output` | Path to write watch events as JSON | - |
 
 ---
 
@@ -165,6 +169,15 @@ trends-checker --keywords "AI assistant" --geo US,GB,DE,FR --output research.csv
 
 # Multi-region with DataForSEO (no 429s)
 trends-checker --keywords "vibe coding,AI agents" --geo US,IN,BR --dataforseo-key user:pass
+
+# Watch mode — poll every 6h, alert on >20%% change
+trends-checker --keywords "AI agents,vibe coding" --watch --interval 6h --threshold 20
+
+# Watch mode with JSON output (for external monitoring)
+trends-checker --keywords "AI agents" --watch --interval 1d --watch-output watch.json --format json
+
+# Watch mode — short interval for testing
+trends-checker --keywords "cursor ide" --watch --interval 30m --threshold 15 --geo US
 ```
 
 ---
