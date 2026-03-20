@@ -27,6 +27,33 @@ def _require_pytrends():
         raise
 
 
+def _parse_interval(value: str) -> float:
+    """Parse interval string like '6h', '30m', '1d' into seconds."""
+    value = value.strip().lower()
+    if value.endswith("h"):
+        return float(value[:-1]) * 3600
+    elif value.endswith("d"):
+        return float(value[:-1]) * 86400
+    elif value.endswith("m"):
+        return float(value[:-1]) * 60
+    else:
+        try:
+            return float(value)
+        except ValueError:
+            raise argparse.ArgumentTypeError(f"Invalid interval: {value!r}. Use format: 30m, 6h, 1d")
+
+
+def _parse_threshold(value: str) -> float:
+    """Parse threshold percentage."""
+    try:
+        v = float(value)
+        if v < 0:
+            raise argparse.ArgumentTypeError(f"Threshold must be positive: {v}")
+        return v
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid threshold: {value!r}")
+
+
 def _parse_args(argv: List[str]) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="trends-checker",
@@ -139,6 +166,30 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         default=os.environ.get("DATAFORSEO_KEY", ""),
         help="DataForSEO API credentials in format username:password. Enables rate-limit-free trend analysis. See https://app.dataforseo.com",
     )
+    # --watch mode arguments
+    p.add_argument(
+        "--watch",
+        action="store_true",
+        help="Enable watch mode: continuously poll and alert on significant changes",
+    )
+    p.add_argument(
+        "--interval",
+        type=_parse_interval,
+        default=21600.0,
+        help="Polling interval in watch mode (default: 6h). Examples: 30m, 6h, 1d",
+    )
+    p.add_argument(
+        "--threshold",
+        type=_parse_threshold,
+        default=20.0,
+        help="Percentage change threshold to trigger an alert (default: 20%%)",
+    )
+    p.add_argument(
+        "--watch-output",
+        type=str,
+        default="",
+        help="Path to write watch events as JSON (for external monitoring integration)",
+    )
     return p.parse_args(argv)
 
 
@@ -162,12 +213,25 @@ def _format_group_name(group: str) -> str:
     """Format group name for display."""
     names = {
         "web": "Web",
-        "youtube": "YouTube", 
+        "youtube": "YouTube",
         "images": "Images",
         "news": "News",
         "shopping": "Shopping",
     }
     return names.get(group, "Web")
+
+
+def _format_watch_interval(seconds: float) -> str:
+    """Format a time interval in seconds to a human-readable string."""
+    if seconds >= 86400:
+        d = int(seconds // 86400)
+        return f"{d}d"
+    elif seconds >= 3600:
+        h = int(seconds // 3600)
+        return f"{h}h"
+    else:
+        m = int(seconds // 60)
+        return f"{m}m"
 
 
 def _load_list_from_file(path: str) -> list[str]:
@@ -341,6 +405,112 @@ def main(argv: List[str] | None = None) -> int:
                 print(f"[warn] {geo or 'WW'}: {kind}; retrying in {delay:.1f}s…", file=sys.stderr)
                 time.sleep(delay)
         raise last_err if last_err else RuntimeError("unknown error")
+
+    def _run_watch_cycle(baseline: dict | None = None) -> tuple[pd.DataFrame, dict, list]:
+        """Run a single trends fetch and return (df, new_baseline, events).
+        
+        If baseline is provided, compute change events against it.
+        """
+        import datetime as _dt
+        rows = []
+        events = []
+        for geo_in in geos:
+            geo = _normalize_geo(geo_in)
+            label = geo_in.upper()
+            try:
+                pytrends, iot = _attempt_fetch(geo)
+                if iot is None or iot.empty:
+                    continue
+                if "isPartial" in iot.columns:
+                    iot = iot.drop(columns=["isPartial"])
+                means = iot.mean().to_dict()
+                row = {"geo": label, **{k: float(means.get(k, 0.0)) for k in kws}}
+                rows.append(row)
+
+                if baseline:
+                    base_geo = baseline.get(label, {})
+                    for kw in kws:
+                        new_val = float(means.get(kw, 0.0))
+                        old_val = float(base_geo.get(kw, 0.0))
+                        if old_val > 0:
+                            pct_change = ((new_val - old_val) / old_val) * 100.0
+                            abs_pct = abs(pct_change)
+                            if abs_pct >= args.threshold:
+                                direction = "SPIKE" if pct_change > 0 else "DECLINE"
+                                symbol = "⚠️ " if direction == "SPIKE" else "📉"
+                                event = {
+                                    "keyword": kw,
+                                    "geo": label,
+                                    "direction": direction,
+                                    "pct_change": round(pct_change, 1),
+                                    "old_value": round(old_val, 2),
+                                    "new_value": round(new_val, 2),
+                                    "threshold": args.threshold,
+                                    "timestamp": _dt.datetime.utcnow().isoformat() + "Z",
+                                }
+                                events.append(event)
+                                print(
+                                    f"{symbol} {direction}: \"{kw}\" "
+                                    f"{'+' if pct_change > 0 else ''}{pct_change:.1f}% ({label}) "
+                                    f"— {_dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+                                )
+
+                time.sleep(max(0.0, float(args.sleep) + random.uniform(0, max(0.0, float(args.jitter)))))
+            except Exception as e:
+                print(f"[error] {label}: {e}", file=sys.stderr)
+                time.sleep(max(0.0, float(args.sleep) + random.uniform(0, max(0.0, float(args.jitter)))))
+                continue
+
+        df = pd.DataFrame(rows)
+
+        # Build new baseline: geo -> {kw: value}
+        new_baseline = {}
+        for _, row in df.iterrows():
+            geo_label = str(row.get("geo", ""))
+            new_baseline[geo_label] = {k: float(row.get(k, 0.0)) for k in kws}
+
+        return df, new_baseline, events
+
+    # --WATCH MODE--
+    if getattr(args, "watch", False):
+        import datetime as _dt
+        print(f"\n[watch mode] Polling every {_format_watch_interval(args.interval)}, threshold={args.threshold}%")
+        print("Press Ctrl+C to stop.\n")
+
+        all_events = []
+        df, baseline, events = _run_watch_cycle(baseline=None)
+        all_events.extend(events)
+        if events:
+            print(f"\n{'='*60}")
+            print(f"📊 Baseline established — {len(events)} initial alert(s)")
+            print(f"{'='*60}\n")
+
+        while True:
+            delay = args.interval
+            print(f"[watch] Next poll in {_format_watch_interval(delay)}...", file=sys.stderr)
+            time.sleep(delay)
+            try:
+                _, new_baseline, events = _run_watch_cycle(baseline=baseline)
+                all_events.extend(events)
+                baseline = new_baseline
+                if args.watch_output:
+                    import json as _json
+                    try:
+                        with open(args.watch_output, "w", encoding="utf-8") as fh:
+                            _json.dump(all_events, fh, indent=2, ensure_ascii=False)
+                    except Exception as e:
+                        print(f"[warn] Failed to write watch output: {e}", file=sys.stderr)
+            except KeyboardInterrupt:
+                print("\n[watch] Stopped.")
+                if args.watch_output and all_events:
+                    import json as _json
+                    try:
+                        with open(args.watch_output, "w", encoding="utf-8") as fh:
+                            _json.dump(all_events, fh, indent=2, ensure_ascii=False)
+                        print(f"Saved {len(all_events)} events to {args.watch_output}")
+                    except Exception:
+                        pass
+                return 0
 
     for geo_in in geos:
         geo = _normalize_geo(geo_in)
