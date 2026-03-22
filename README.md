@@ -6,6 +6,8 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/backend-Google%20Trends%20%7C%20DataForSEO-purple?style=flat-square" alt="Backend">
   <a href="https://github.com/akvise/trends-checker/actions/workflows/ci.yml"><img src="https://github.com/akvise/trends-checker/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/trends-checker/"><img src="https://img.shields.io/pypi/v/trends-checker?style=flat-square&color=orange" alt="PyPI"></a>
+  <a href="https://pypi.org/project/trends-checker/"><img src="https://img.shields.io/pypi/dm/trends-checker?style=flat-square&color=blue" alt="Downloads"></a>
 </p>
 
 **Python CLI for Google Trends analysis** — with enterprise rate limiting, cookie auth, and DataForSEO backend support.
@@ -75,6 +77,24 @@ trends-checker --group youtube --keywords "cursor ide tutorial"         # YouTub
 trends-checker --group images --keywords "AI generated art"             # Images
 trends-checker --group news --keywords "artificial intelligence"         # News
 trends-checker --group shopping --keywords "mechanical keyboard"         # Shopping
+```
+
+---
+
+## 🔧 Output & Filtering
+
+```bash
+# JSON output — pipe-friendly, great for automation and scripts
+trends-checker --keywords "AI agents,vibe coding" --format json
+
+# CSV to stdout — combine with --output to save to file
+trends-checker --keywords "AI agents,vibe coding" --format csv --output results.csv
+
+# Show only top 3 keywords by mean interest (useful with 5 keywords)
+trends-checker --keywords "AI agents,vibe coding,cursor ide,llm,rag" --top 3
+
+# No unicode bars — safe for cron jobs, CI pipelines, and log files
+trends-checker --keywords "AI agents,vibe coding" --no-color
 ```
 
 ---

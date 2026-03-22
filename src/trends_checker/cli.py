@@ -190,6 +190,17 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         default="",
         help="Path to write watch events as JSON (for external monitoring integration)",
     )
+    p.add_argument(
+        "--top",
+        type=int,
+        default=0,
+        help="Show only top N keywords by mean interest across all geos (0 = show all)",
+    )
+    p.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable colored/unicode bar characters — useful for cron jobs and CI pipelines",
+    )
     return p.parse_args(argv)
 
 
@@ -562,6 +573,14 @@ def main(argv: List[str] | None = None) -> int:
 
     df = pd.DataFrame(rows)
 
+    # Apply --top filter: keep only top N keywords by mean across all geos
+    top_n = getattr(args, "top", 0)
+    if top_n and top_n > 0:
+        kw_means = {k: df[k].mean() for k in kws if k in df.columns}
+        kws = sorted(kw_means, key=lambda x: kw_means[x], reverse=True)[:top_n]
+
+    no_color = getattr(args, "no_color", False)
+
     # --format json / csv — machine-readable output to stdout
     fmt = getattr(args, "format", "table")
     if fmt == "json":
@@ -579,18 +598,20 @@ def main(argv: List[str] | None = None) -> int:
             print(f"\nSaved JSON: {args.output}", file=sys.stderr)
         return 0
     elif fmt == "csv":
-        print(df.to_csv(index=False), end="")
+        cols = ["geo"] + list(kws)
+        print(df[cols].to_csv(index=False), end="")
         if args.output:
-            df.to_csv(args.output, index=False)
+            df[cols].to_csv(args.output, index=False)
             print(f"\nSaved CSV: {args.output}", file=sys.stderr)
         return 0
 
     # Pretty print (wide or vertical)
     try:
         from tabulate import tabulate  # type: ignore
-        print(f"\n=== Mean interest over time (Google {_format_group_name(args.group)} Search) ===")
+        if not no_color:
+            print(f"\n=== Mean interest over time (Google {_format_group_name(args.group)} Search) ===")
         if getattr(args, "display", "wide") == "wide":
-            print(tabulate(df, headers="keys", tablefmt="github", showindex=False))
+            print(tabulate(df[["geo"] + list(kws)], headers="keys", tablefmt="github", showindex=False))
         else:
             # Vertical per-geo: show keyword, mean, and an ascii bar
             def _bar(v: float, width: int = 20) -> str:
@@ -599,11 +620,16 @@ def main(argv: List[str] | None = None) -> int:
                 except Exception:
                     v = 0.0
                 filled = int(round(v / 100.0 * width))
+                if no_color:
+                    return "#" * filled + "-" * (width - filled)
                 return "█" * filled + "░" * (width - filled)
 
             for _, row in df.iterrows():
                 geo_label = str(row.get("geo", ""))
-                print(f"\n--- [{geo_label}] ---")
+                if no_color:
+                    print(f"\n[{geo_label}]")
+                else:
+                    print(f"\n--- [{geo_label}] ---")
                 kv_list = []
                 for k in kws:
                     val = float(row.get(k, 0.0))
