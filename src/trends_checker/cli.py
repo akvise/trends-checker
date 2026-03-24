@@ -201,6 +201,13 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         action="store_true",
         help="Disable colored/unicode bar characters — useful for cron jobs and CI pipelines",
     )
+    p.add_argument(
+        "--export-markdown",
+        type=str,
+        default="",
+        metavar="PATH",
+        help="Export results as a Markdown table to the specified file path",
+    )
     return p.parse_args(argv)
 
 
@@ -653,6 +660,22 @@ def main(argv: List[str] | None = None) -> int:
             print(f"\nSaved CSV: {args.output}")
         except Exception as e:
             print(f"Failed to save CSV: {e}", file=sys.stderr)
+
+    export_md = getattr(args, "export_markdown", "")
+    if export_md:
+        try:
+            cols = ["geo"] + list(kws)
+            lines = ["| " + " | ".join(cols) + " |"]
+            lines.append("| " + " | ".join(["---"] * len(cols)) + " |")
+            for _, row in df.iterrows():
+                cells = [str(row.get("geo", ""))] + [str(round(float(row.get(k, 0.0)), 1)) for k in kws]
+                lines.append("| " + " | ".join(cells) + " |")
+            md_content = "\n".join(lines) + "\n"
+            with open(export_md, "w", encoding="utf-8") as fh:
+                fh.write(md_content)
+            print(f"\nSaved Markdown: {export_md}")
+        except Exception as e:
+            print(f"Failed to save Markdown: {e}", file=sys.stderr)
 
     return 0
 
