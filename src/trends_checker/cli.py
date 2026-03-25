@@ -90,6 +90,13 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         help="UI language (pytrends hl), e.g., en-US or ru-RU",
     )
     p.add_argument(
+        "--since",
+        type=str,
+        default="",
+        metavar="YYYY-MM-DD",
+        help="Start date for custom timeframe (e.g. 2024-01-01). Overrides --timeframe with 'YYYY-MM-DD today'.",
+    )
+    p.add_argument(
         "--sleep",
         type=float,
         default=1.2,
@@ -357,6 +364,16 @@ def main(argv: List[str] | None = None) -> int:
     if args.dataforseo_key:
         run_dataforseo(kws, args)
         return 0
+
+    # --since overrides --timeframe
+    if getattr(args, "since", ""):
+        import datetime as _dt
+        try:
+            _dt.date.fromisoformat(args.since)  # validate format
+            args.timeframe = f"{args.since} {_dt.date.today().isoformat()}"
+            print(f"[info] Timeframe set to: {args.timeframe}", file=sys.stderr)
+        except ValueError:
+            print(f"[warn] Invalid --since date '{args.since}', ignoring (use YYYY-MM-DD)", file=sys.stderr)
 
     geos = [g.strip() for g in args.geo.split(",") if g.strip()]
     geos = geos or DEFAULT_GEOS
