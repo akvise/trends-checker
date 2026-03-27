@@ -198,6 +198,13 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         help="Path to write watch events as JSON (for external monitoring integration)",
     )
     p.add_argument(
+        "--webhook",
+        type=str,
+        default="",
+        metavar="URL",
+        help="POST watch alerts to this URL as JSON (e.g. Slack/Discord webhook or custom endpoint)",
+    )
+    p.add_argument(
         "--top",
         type=int,
         default=0,
@@ -489,6 +496,18 @@ def main(argv: List[str] | None = None) -> int:
                                     f"{'+' if pct_change > 0 else ''}{pct_change:.1f}% ({label}) "
                                     f"— {_dt.datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
                                 )
+                                # Fire webhook if configured
+                                webhook_url = getattr(args, "webhook", "")
+                                if webhook_url:
+                                    try:
+                                        import urllib.request as _req
+                                        import json as _json
+                                        _data = _json.dumps(event).encode()
+                                        _r = _req.Request(webhook_url, data=_data,
+                                            headers={"Content-Type": "application/json"}, method="POST")
+                                        _req.urlopen(_r, timeout=5)
+                                    except Exception as _e:
+                                        print(f"[warn] webhook failed: {_e}", file=sys.stderr)
 
                 time.sleep(max(0.0, float(args.sleep) + random.uniform(0, max(0.0, float(args.jitter)))))
             except Exception as e:
