@@ -149,9 +149,11 @@ DataForSEO gives you real search volumes with no rate limits — ideal for autom
 | `--dataforseo-key` | DataForSEO credentials (`user:pass`) | `$DATAFORSEO_KEY` |
 | `--hl` | UI language (e.g., `en-US`) | en-US |
 | `--watch` | Enable watch mode (continuous polling + alerts) | false |
+| `--watchlist` | Path to watchlist TOML (keywords/geos/timeframe/etc) | - |
 | `--interval` | Polling interval in watch mode (e.g. `6h`, `30m`, `1d`) | `6h` |
 | `--threshold` | Percentage change to trigger an alert | `20` |
 | `--watch-output` | Path to write watch events as JSON | - |
+| `--watch-snapshot` | Path to persist baseline snapshot between runs (JSON) | - |
 
 ---
 
@@ -198,6 +200,9 @@ trends-checker --keywords "AI agents" --watch --interval 1d --watch-output watch
 
 # Watch mode — short interval for testing
 trends-checker --keywords "cursor ide" --watch --interval 30m --threshold 15 --geo US
+
+# Watchlist config (TOML) + persistent baseline between runs
+trends-checker --watch --watchlist watchlist.toml --watch-snapshot watch-snapshot.json
 ```
 
 ---

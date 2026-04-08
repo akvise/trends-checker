@@ -180,6 +180,12 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         help="Enable watch mode: continuously poll and alert on significant changes",
     )
     p.add_argument(
+        "--watchlist",
+        type=str,
+        default="",
+        help="Path to watchlist TOML (keywords/geos/timeframe/etc). CLI flags override when explicitly provided.",
+    )
+    p.add_argument(
         "--interval",
         type=_parse_interval,
         default=21600.0,
@@ -196,6 +202,12 @@ def _parse_args(argv: List[str]) -> argparse.Namespace:
         type=str,
         default="",
         help="Path to write watch events as JSON (for external monitoring integration)",
+    )
+    p.add_argument(
+        "--watch-snapshot",
+        type=str,
+        default="",
+        help="Path to persist watch baseline snapshot (JSON) between runs",
     )
     p.add_argument(
         "--webhook",
@@ -279,6 +291,98 @@ def _load_list_from_file(path: str) -> list[str]:
     return items
 
 
+def _flag_present(argv: list[str], flag: str) -> bool:
+    return flag in argv
+
+
+def _apply_watchlist(args: argparse.Namespace, argv: list[str]) -> None:
+    """Apply watchlist TOML config unless overridden explicitly by CLI flags."""
+    if not getattr(args, "watchlist", ""):
+        return
+    path = str(args.watchlist)
+    try:
+        import tomllib  # py3.11+
+        with open(path, "rb") as f:
+            cfg = tomllib.load(f)
+    except Exception as e:
+        print(f"[warn] Failed to load watchlist '{path}': {e}", file=sys.stderr)
+        return
+
+    def _set_if_not_flag(flag: str, attr: str, value):
+        if _flag_present(argv, flag):
+            return
+        setattr(args, attr, value)
+
+    # keywords / geos
+    if isinstance(cfg.get("keywords"), list):
+        _set_if_not_flag("--keywords", "keywords", ",".join([str(x) for x in cfg["keywords"]]))
+    if isinstance(cfg.get("keywords_file"), str):
+        _set_if_not_flag("--keywords-file", "keywords_file", str(cfg["keywords_file"]))
+    if isinstance(cfg.get("geos"), list):
+        _set_if_not_flag("--geo", "geo", ",".join([str(x) for x in cfg["geos"]]))
+
+    # basic settings
+    for key, flag, attr in [
+        ("timeframe", "--timeframe", "timeframe"),
+        ("hl", "--hl", "hl"),
+        ("group", "--group", "group"),
+        ("since", "--since", "since"),
+        ("proxy", "--proxy", "proxy"),
+        ("cookie", "--cookie", "cookie"),
+        ("cookie_file", "--cookie-file", "cookie_file"),
+        ("format", "--format", "format"),
+        ("watch_output", "--watch-output", "watch_output"),
+        ("watch_snapshot", "--watch-snapshot", "watch_snapshot"),
+        ("webhook", "--webhook", "webhook"),
+        ("export_markdown", "--export-markdown", "export_markdown"),
+    ]:
+        if key in cfg:
+            _set_if_not_flag(flag, attr, cfg.get(key))
+
+    # numerics
+    if "interval" in cfg and not _flag_present(argv, "--interval"):
+        try:
+            val = cfg.get("interval")
+            args.interval = _parse_interval(str(val)) if isinstance(val, str) else float(val)
+        except Exception:
+            pass
+    if "threshold" in cfg and not _flag_present(argv, "--threshold"):
+        try:
+            args.threshold = float(cfg.get("threshold"))
+        except Exception:
+            pass
+    if "sleep" in cfg and not _flag_present(argv, "--sleep"):
+        try:
+            args.sleep = float(cfg.get("sleep"))
+        except Exception:
+            pass
+    if "retries" in cfg and not _flag_present(argv, "--retries"):
+        try:
+            args.retries = int(cfg.get("retries"))
+        except Exception:
+            pass
+    if "backoff" in cfg and not _flag_present(argv, "--backoff"):
+        try:
+            args.backoff = float(cfg.get("backoff"))
+        except Exception:
+            pass
+    if "jitter" in cfg and not _flag_present(argv, "--jitter"):
+        try:
+            args.jitter = float(cfg.get("jitter"))
+        except Exception:
+            pass
+    if "top" in cfg and not _flag_present(argv, "--top"):
+        try:
+            args.top = int(cfg.get("top"))
+        except Exception:
+            pass
+    if "no_color" in cfg and not _flag_present(argv, "--no-color"):
+        try:
+            args.no_color = bool(cfg.get("no_color"))
+        except Exception:
+            pass
+
+
 def run_dataforseo(keywords: List[str], args) -> None:
     """Use DataForSEO API as backend — no rate limits, real search volumes."""
     import urllib.request
@@ -332,7 +436,9 @@ def run_dataforseo(keywords: List[str], args) -> None:
 
 
 def main(argv: List[str] | None = None) -> int:
-    args = _parse_args(argv or sys.argv[1:])
+    argv = argv or sys.argv[1:]
+    args = _parse_args(argv)
+    _apply_watchlist(args, list(argv))
 
     try:
         import pandas as pd  # type: ignore
@@ -532,12 +638,30 @@ def main(argv: List[str] | None = None) -> int:
         print("Press Ctrl+C to stop.\n")
 
         all_events = []
-        df, baseline, events = _run_watch_cycle(baseline=None)
+        baseline = None
+        if getattr(args, "watch_snapshot", ""):
+            try:
+                import json as _json
+                if os.path.exists(args.watch_snapshot):
+                    with open(args.watch_snapshot, "r", encoding="utf-8") as fh:
+                        baseline = _json.load(fh)
+            except Exception as e:
+                print(f"[warn] Failed to load watch snapshot: {e}", file=sys.stderr)
+
+        df, baseline, events = _run_watch_cycle(baseline=baseline)
         all_events.extend(events)
         if events:
             print(f"\n{'='*60}")
             print(f"📊 Baseline established — {len(events)} initial alert(s)")
             print(f"{'='*60}\n")
+
+        if getattr(args, "watch_snapshot", "") and baseline:
+            try:
+                import json as _json
+                with open(args.watch_snapshot, "w", encoding="utf-8") as fh:
+                    _json.dump(baseline, fh, indent=2, ensure_ascii=False)
+            except Exception as e:
+                print(f"[warn] Failed to write watch snapshot: {e}", file=sys.stderr)
 
         while True:
             delay = args.interval
@@ -547,6 +671,13 @@ def main(argv: List[str] | None = None) -> int:
                 _, new_baseline, events = _run_watch_cycle(baseline=baseline)
                 all_events.extend(events)
                 baseline = new_baseline
+                if getattr(args, "watch_snapshot", ""):
+                    try:
+                        import json as _json
+                        with open(args.watch_snapshot, "w", encoding="utf-8") as fh:
+                            _json.dump(baseline, fh, indent=2, ensure_ascii=False)
+                    except Exception as e:
+                        print(f"[warn] Failed to write watch snapshot: {e}", file=sys.stderr)
                 if args.watch_output:
                     import json as _json
                     try:
@@ -562,6 +693,13 @@ def main(argv: List[str] | None = None) -> int:
                         with open(args.watch_output, "w", encoding="utf-8") as fh:
                             _json.dump(all_events, fh, indent=2, ensure_ascii=False)
                         print(f"Saved {len(all_events)} events to {args.watch_output}")
+                    except Exception:
+                        pass
+                if getattr(args, "watch_snapshot", "") and baseline:
+                    import json as _json
+                    try:
+                        with open(args.watch_snapshot, "w", encoding="utf-8") as fh:
+                            _json.dump(baseline, fh, indent=2, ensure_ascii=False)
                     except Exception:
                         pass
                 return 0

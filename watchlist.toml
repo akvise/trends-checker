@@ -1,0 +1,24 @@
+# Watchlist config for trends-checker
+# Use with: trends-checker --watch --watchlist watchlist.toml --watch-snapshot watch-snapshot.json
+
+keywords = [
+  "AI agents",
+  "cursor ide",
+  "vibe coding",
+]
+
+geos = ["WW", "US", "BR", "ES", "IN"]
+
+timeframe = "today 12-m"
+hl = "en-US"
+group = "web"
+
+# Watch settings
+interval = "6h"
+threshold = 20
+watch_output = "watch-events.json"
+watch_snapshot = "watch-snapshot.json"
+
+# Optional output formatting
+format = "table"
+no_color = false
