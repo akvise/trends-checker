@@ -13,6 +13,11 @@ dependencies = [
   "pytrends>=4.9",
   "pandas>=2.0",
   "tabulate>=0.9",
+  # pytrends 4.9.2 (its latest release) calls urllib3's Retry with `method_whitelist`,
+  # which urllib3 removed in 2.0 — so a fresh install picks up urllib3 2.x and every
+  # request dies with "Retry.__init__() got an unexpected keyword argument
+  # 'method_whitelist'". Pin until pytrends ships a fix.
+  "urllib3<2",
 ]
 
 [project.scripts]

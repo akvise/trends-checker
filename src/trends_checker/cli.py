@@ -241,6 +241,29 @@ def _normalize_geo(code: str) -> str:
     return "" if code.upper() == "WW" else code.upper()
 
 
+# DataForSEO speaks its own dialect for the same two concepts pytrends expresses as
+# gprop + timeframe. Kept next to _map_group_to_gprop so both dialects stay in sync.
+DATAFORSEO_TYPES = {
+    "web": "web",
+    "youtube": "youtube",
+    "images": "images",
+    "news": "news",
+    "shopping": "froogle",
+}
+
+DATAFORSEO_TIME_RANGES = {
+    "now 1-H": "past_hour",
+    "now 4-H": "past_4_hours",
+    "now 1-d": "past_day",
+    "now 7-d": "past_7_days",
+    "today 1-m": "past_30_days",
+    "today 3-m": "past_90_days",
+    "today 12-m": "past_12_months",
+    "today 5-y": "past_5_years",
+    "all": "2004_present",
+}
+
+
 def _map_group_to_gprop(group: str) -> str:
     """Map user-friendly group names to pytrends gprop values."""
     mapping = {
@@ -383,6 +406,52 @@ def _apply_watchlist(args: argparse.Namespace, argv: list[str]) -> None:
             pass
 
 
+_DATAFORSEO_LOCATIONS: dict | None = None
+
+
+def _dataforseo_locations(auth: str) -> dict:
+    """ISO country code -> DataForSEO location_code, fetched once per process.
+
+    The locations list is ~2300 rows and identical for every geo, so fetching it per
+    region would be 7 needless round-trips on the default geo set.
+    """
+    global _DATAFORSEO_LOCATIONS
+    if _DATAFORSEO_LOCATIONS is not None:
+        return _DATAFORSEO_LOCATIONS
+
+    import urllib.request
+    import json
+
+    req = urllib.request.Request(
+        "https://api.dataforseo.com/v3/keywords_data/google_trends/locations",
+        headers={"Authorization": f"Basic {auth}"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read())
+
+    mapping = {}
+    if data.get("status_code") == 20000:
+        for loc in (data.get("tasks") or [{}])[0].get("result") or []:
+            iso = loc.get("country_iso_code")
+            if iso and loc.get("location_type") == "Country":
+                mapping.setdefault(iso, loc.get("location_code"))
+    _DATAFORSEO_LOCATIONS = mapping
+    return mapping
+
+
+def _dataforseo_location_code(auth: str, geo: str):
+    """Resolve an ISO country code (e.g. 'US') to a DataForSEO location_code.
+
+    Returns None for worldwide (geo 'WW' or empty), which DataForSEO expresses by
+    omitting the location entirely. Returns None too if the country isn't available
+    for Trends (e.g. RU) — the caller warns and falls back to worldwide.
+    """
+    geo = (geo or "").strip().upper()
+    if not geo or geo == "WW":
+        return None
+    return _dataforseo_locations(auth).get(geo)
+
+
 def run_dataforseo(keywords: List[str], args) -> None:
     """Use DataForSEO API as backend — no rate limits, real search volumes."""
     import urllib.request
@@ -398,41 +467,109 @@ def run_dataforseo(keywords: List[str], args) -> None:
     username, password = creds.split(":", 1)
     auth = base64.b64encode(f"{username}:{password}".encode()).decode()
 
-    payload = json.dumps([{
-        "keywords": keywords[:5],
-        "type": "web",
-        "language_code": "en",
-    }]).encode()
+    # --geo is a comma-separated list; the Trends endpoint takes one location per
+    # task, so query each region separately (as the pytrends path already does).
+    geos = [g.strip() for g in (args.geo or "WW").split(",") if g.strip()]
 
-    req = urllib.request.Request(
-        "https://api.dataforseo.com/v3/keywords_data/google_trends/explore/live",
-        data=payload,
-        headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
-        method="POST",
-    )
+    timeframe = getattr(args, "timeframe", "today 12-m")
+    time_range = DATAFORSEO_TIME_RANGES.get(timeframe)
+    if time_range is None:
+        # Silently substituting a default would hand back a different period than the
+        # user asked for, with no way to notice. Say so instead.
+        print(f"[warn] --timeframe '{timeframe}' has no DataForSEO equivalent; "
+              f"using past_12_months. Supported: "
+              f"{', '.join(sorted(DATAFORSEO_TIME_RANGES))}", file=sys.stderr)
+        time_range = "past_12_months"
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            result = json.loads(resp.read())
+    printed_header = False
+    for geo in geos:
+        try:
+            location_code = _dataforseo_location_code(auth, geo)
+        except Exception as e:  # noqa: BLE001
+            print(f"[warn] {geo}: could not resolve location ({e}); using worldwide",
+                  file=sys.stderr)
+            location_code = None
 
-        if result.get("status_code") == 20000:
+        fell_back_to_ww = location_code is None and geo.upper() not in ("WW", "")
+        if fell_back_to_ww:
+            print(f"[warn] {geo}: not available for Google Trends; using worldwide",
+                  file=sys.stderr)
+
+        task = {
+            "keywords": keywords[:5],
+            "type": DATAFORSEO_TYPES.get(getattr(args, "group", "web"), "web"),
+            "language_code": (getattr(args, "hl", "en-US") or "en-US").split("-")[0],
+            "time_range": time_range,
+        }
+        if location_code is not None:
+            task["location_code"] = location_code
+
+        req = urllib.request.Request(
+            "https://api.dataforseo.com/v3/keywords_data/google_trends/explore/live",
+            data=json.dumps([task]).encode(),
+            headers={"Authorization": f"Basic {auth}", "Content-Type": "application/json"},
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                result = json.loads(resp.read())
+        except Exception as e:  # noqa: BLE001
+            print(f"[error] {geo}: DataForSEO request failed: {e}", file=sys.stderr)
+            continue
+
+        if result.get("status_code") != 20000:
+            print(f"[error] {geo}: DataForSEO error {result.get('status_code')}: "
+                  f"{result.get('status_message', 'Unknown')}", file=sys.stderr)
+            continue
+
+        task_obj = (result.get("tasks") or [{}])[0]
+        if task_obj.get("status_code") != 20000:
+            print(f"[error] {geo}: task failed {task_obj.get('status_code')}: "
+                  f"{task_obj.get('status_message', 'Unknown')}", file=sys.stderr)
+            continue
+
+        if not printed_header:
             print(f"\n📊 DataForSEO Trends (no rate limits)\n{'─' * 55}")
-            tasks = result.get("tasks", [])
-            for task in tasks:
-                res = task.get("result") or []
-                items = res[0].get("items", []) if res else []
-                for item in items:
-                    kw = item.get("keyword", "")
-                    vals = item.get("data", {}).get("values", [])
-                    avg = sum(v.get("value", 0) for v in vals) / len(vals) if vals else 0
-                    bar = "█" * int(avg / 5) + "░" * (20 - int(avg / 5))
-                    print(f"  {kw:<32} [{bar}] {avg:.0f}/100")
-        else:
-            print(f"DataForSEO error {result.get('status_code')}: {result.get('status_message', 'Unknown')}", file=sys.stderr)
+            printed_header = True
 
-    except Exception as e:  # noqa: BLE001
-        print(f"DataForSEO request failed: {e}", file=sys.stderr)
-        print("Falling back to Google Trends...", file=sys.stderr)
+        res = task_obj.get("result") or []
+        items = (res[0].get("items") or []) if res else []
+        rows = []
+        for item in items:
+            # The graph item holds ALL keywords: `keywords` is a list, and `data` is a
+            # list of time points whose `values` array is parallel to that list.
+            if item.get("type") != "google_trends_graph":
+                continue
+            item_keywords = item.get("keywords") or []
+            points = item.get("data") or []
+            averages = item.get("averages") or []
+
+            for idx, kw in enumerate(item_keywords):
+                if idx < len(averages) and averages[idx] is not None:
+                    avg = averages[idx]  # DataForSEO precomputes the mean
+                else:
+                    vals = [
+                        p["values"][idx]
+                        for p in points
+                        if p.get("values") and idx < len(p["values"])
+                        and p["values"][idx] is not None
+                    ]
+                    avg = sum(vals) / len(vals) if vals else 0
+                rows.append((kw, avg))
+
+        if not rows:
+            print(f"[warn] {geo}: no trend data returned", file=sys.stderr)
+            continue
+
+        # Label what the data IS, not what was asked for: a header reading [RU] over
+        # worldwide numbers is a quiet lie.
+        label = f"{geo.upper()} -> WW" if fell_back_to_ww else geo.upper()
+        print(f"\n[{label}]")
+        for kw, avg in sorted(rows, key=lambda x: -x[1]):
+            filled = int(avg / 5)
+            bar = "█" * filled + "░" * (20 - filled)
+            print(f"  {kw:<32} [{bar}] {avg:.0f}/100")
 
 
 def main(argv: List[str] | None = None) -> int:
